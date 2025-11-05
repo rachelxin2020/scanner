@@ -261,6 +261,7 @@
         const startScanner = async () => {
             if (isScanning) return;
 
+            console.log("Attempting to start scanner and initialize camera.");
             updateStatus("Initializing camera...");
             document.getElementById('start-button').classList.add('hidden');
             document.getElementById('stop-button').classList.remove('hidden');
@@ -277,6 +278,7 @@
                         // Request a specific resolution for better decoding accuracy
                         width: 1280,
                         height: 720,
+                        // CRITICAL: Tells the browser to use the rear camera on mobile
                         facingMode: "environment" 
                     },
                 },
@@ -317,9 +319,10 @@
                 // Initialize Quagga
                 await Quagga.init(config, (err) => {
                     if (err) {
-                        console.error(err);
+                        console.error("Quagga initialization failed with error:", err);
                         stopScanner();
-                        showMessage("Camera Error", `Failed to start camera: ${err.message}. Please ensure camera access is allowed.`, true);
+                        // Provide a clear message to the user about permissions
+                        showMessage("Camera Access Required", `Failed to start camera. Please ensure your browser has camera access permission. Error detail: ${err.message}`, true);
                         return;
                     }
                     Quagga.start();
@@ -327,9 +330,10 @@
                     updateStatus("Scanning for barcodes...");
                 });
             } catch (error) {
-                console.error("Initialization failed:", error);
+                // Catch any synchronous error during Quagga.init setup
+                console.error("Initialization failed synchronously:", error);
                 stopScanner();
-                showMessage("Initialization Error", "The scanner could not start. Please check your browser's console for details.", true);
+                showMessage("Setup Error", "A fatal error occurred during scanner setup. Check console for details.", true);
                 return;
             }
 
