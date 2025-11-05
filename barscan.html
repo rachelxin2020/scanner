@@ -199,7 +199,7 @@
             document.getElementById('start-button').classList.add('hidden');
             document.getElementById('stop-button').classList.remove('hidden');
             
-            // Configuration for QuaggaJS - OPTIMIZED FOR ACCURACY & READ RATE
+            // Configuration for QuaggaJS - OPTIMIZED FOR UPC-A ACCURACY & STABILITY
             const config = {
                 singlePass: true, // Process frames faster on mobile
                 // Tells Quagga to read from the camera
@@ -229,12 +229,9 @@
                 // Use maximum workers for faster parallel processing
                 numOfWorkers: 4, 
                 decoder: {
-                    // Supported barcode types
+                    // Supported barcode types - ONLY UPC variants and industrial codes
                     readers: [
-                        // Retail codes - ADDED minConfidence for stability
-                        { format: "ean_reader", config: { normalizeBarSpace: true, minConfidence: 0.95 } },
                         { format: "upc_reader", config: { normalizeBarSpace: true, minConfidence: 0.95 } },
-                        "ean_8_reader",
                         "upc_e_reader",
                         // Industrial codes - minLength for stability
                         { format: "code_128_reader", config: { minLength: 6 } },
@@ -242,8 +239,8 @@
                         "codabar_reader",
                         "i2of5_reader"
                     ],
-                    // CRUCIAL: Code must be detected over 15 frames to confirm
-                    resultPersistence: 15,
+                    // CRITICAL CHANGE: Code must be detected over 30 frames for stability
+                    resultPersistence: 30, 
                     supplements: ['ean_upc'], 
                 },
                 locate: true // Highlight the barcode when found
@@ -255,4 +252,94 @@
                     if (err) {
                         console.error(err);
                         stopScanner();
-                        showMessage("
+                        showMessage("Camera Error", `Failed to start camera: ${err.message}. Please ensure camera access is allowed.`, true);
+                        return;
+                    }
+                    Quagga.start();
+                    isScanning = true;
+                    updateStatus("Scanning for barcodes...");
+                });
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                stopScanner();
+                showMessage("Initialization Error", "The scanner could not start. Please check your browser's console for details.", true);
+                return;
+            }
+
+            // Event listener for when a barcode is detected
+            Quagga.onDetected(handleDetected);
+        };
+
+        const stopScanner = () => {
+            if (!isScanning) return;
+
+            Quagga.stop();
+            isScanning = false;
+            document.getElementById('start-button').classList.remove('hidden');
+            document.getElementById('stop-button').classList.add('hidden');
+            updateStatus("Scan stopped.");
+
+            // Remove any leftover canvas drawing buffers
+            const viewport = document.querySelector('#interactive');
+            const drawingBuffers = viewport.querySelectorAll('.drawingBuffer');
+            drawingBuffers.forEach(buffer => buffer.remove());
+        };
+
+        const handleDetected = (result) => {
+            // Stop scanning immediately after the first successful detection
+            stopScanner();
+            
+            let code = result.codeResult.code;
+            let type = result.codeResult.format.toUpperCase();
+
+            // --- START: CUSTOM LOGIC TO ENSURE 12-DIGIT UPC-A ---
+            // Even though we removed the EAN reader, sometimes the UPC reader outputs EAN_13 (13 digits) 
+            // starting with '0'. We force it back to 12 digits here.
+            if (code.length === 13 && code.startsWith('0')) {
+                code = code.substring(1); // Strip the leading '0' to get 12 digits
+                type = 'UPC-A (12-Digit)'; 
+            } else if (type === 'UPC_A' || type === 'UPC_E') {
+                type = `${type} (${code.length}-Digit)`;
+            }
+            // --- END: CUSTOM LOGIC ---
+
+            // Display the result
+            document.getElementById('result-type').textContent = type;
+            document.getElementById('result-code').textContent = code;
+            document.getElementById('result-card').classList.remove('hidden');
+            updateStatus(`Found: ${code}`);
+
+            // You would normally send this data to a server or process it here.
+            console.log("Barcode detected:", code, "Type:", type);
+            // Optional: You can add an audio cue here using Tone.js if desired
+        };
+
+
+        // --- Handle Quagga drawing (optional but useful for debugging/visuals) ---
+        Quagga.onProcessed(function(result) {
+            var drawingCtx = Quagga.canvas.ctx.overlay,
+                drawingCanvas = Quagga.canvas.dom.overlay;
+
+            if (result) {
+                if (result.boxes) {
+                    drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
+                    result.boxes.filter(function(box) {
+                        return box !== result.box;
+                    }).forEach(function(box) {
+                        Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: "green", lineWidth: 2});
+                    });
+                }
+
+                if (result.box) {
+                    Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: "#00F", lineWidth: 2});
+                }
+
+                if (result.codeResult && result.codeResult.code) {
+                    Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: "red", lineWidth: 3});
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
