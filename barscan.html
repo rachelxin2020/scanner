@@ -7,7 +7,7 @@
     <!-- Load Tailwind CSS for modern, responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Inter font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Load QuaggaJS library for barcode scanning -->
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 
@@ -97,6 +97,14 @@
         <!-- Updated status display for Google Sheets -->
         <p id="status-message" class="text-sm text-gray-400 mb-1">Sheet status: <span id="save-status" class="text-green-400">Ready.</span></p>
         <p class="text-sm text-gray-400 mb-6">Tap "Start Scan" or use Manual Input.</p>
+        
+        <!-- Name/Location Input Field -->
+        <div class="w-full mb-6">
+            <label for="name-input" class="block text-sm font-medium text-gray-300 mb-1">Name / Location</label>
+            <input type="text" id="name-input" placeholder="Your name or warehouse section" 
+                   class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+
 
         <div id="scanner-container">
             <!-- QuaggaJS will insert video/canvas elements here -->
@@ -121,7 +129,7 @@
             </button>
         </div>
 
-        <!-- Manual Input Card (New) -->
+        <!-- Manual Input Card (Updated) -->
         <div id="manual-input-card" class="mt-8 p-4 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-xl hidden">
             <h2 class="text-xl font-semibold mb-3 text-blue-300">Enter Code Manually</h2>
             <input type="text" id="manual-code-input" placeholder="Enter UPC or Barcode" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -140,7 +148,7 @@
                 <p id="result-code" class="text-2xl font-extrabold text-yellow-300 break-words"></p>
             </div>
             <button id="clear-button" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg text-sm" onclick="clearResult()">
-                Clear Result
+                Clear Result & Scan Next
             </button>
         </div>
         
@@ -155,55 +163,37 @@
             </div>
         </div>
 
-        <!-- Configuration Check Card -->
-        <div class="mt-8 w-full">
-            <button onclick="toggleConfigCheck()" class="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 text-sm font-semibold rounded-lg text-gray-200">
-                <span id="config-toggle-icon">▼</span> Configuration Check (Troubleshooting)
-            </button>
-            <div id="config-check-details" class="mt-2 p-4 bg-gray-800 border border-gray-700 rounded-lg text-xs space-y-2 hidden">
-                <p class="text-red-400 font-bold">CRITICAL: These values MUST match your Google Form:</p>
-                
-                <div>
-                    <label class="text-gray-400 block mb-1">Google Sheet Form ID (from the Form's URL):</label>
-                    <p id="display-form-id" class="text-yellow-300 break-all"></p>
-                </div>
-                
-                <div>
-                    <label class="text-gray-400 block mb-1">Google Form Entry ID (from the field name):</label>
-                    <p id="display-entry-id" class="text-yellow-300 break-all"></p>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <script>
         // ====================================================================
-        // CONFIGURATION: Confirmed working based on your pre-filled link.
+        // CONFIGURATION: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
         // ====================================================================
-        const GOOGLE_SHEET_FORM_ID = "1G6i9IfoFMlPtsXyPWs1ARWYm5CP1VzYgEbe0LKVwlk4"; 
-        
-        // This Entry ID (entry.78591346) was confirmed by your link to be correct.
-        const GOOGLE_SHEET_ENTRY_ID = "entry.78591346"; 
-        // ====================================================================
+        const WEB_APP_URL = "YOUR_DEPLOYMENT_URL_HERE"; 
+        const NAME_INPUT_KEY = 'lastScanName'; // Local storage key for name persistence
 
+        // Elements
+        const nameInput = document.getElementById('name-input');
+        const saveStatusEl = document.getElementById('save-status');
 
         // Global state to track scanner status
         let isScanning = false;
         
-        // --- Configuration Display Logic ---
+        // --- Configuration Check (Old Google Forms IDs no longer needed) ---
         window.onload = () => {
-            // Populate the configuration check card on load
-            document.getElementById('display-form-id').textContent = GOOGLE_SHEET_FORM_ID;
-            document.getElementById('display-entry-id').textContent = GOOGLE_SHEET_ENTRY_ID;
+            // Load and persist the Name/Location field
+            const persistedName = localStorage.getItem(NAME_INPUT_KEY);
+            if (persistedName) {
+                nameInput.value = persistedName;
+            }
         };
 
         const toggleConfigCheck = () => {
-            const details = document.getElementById('config-check-details');
-            const icon = document.getElementById('config-toggle-icon');
-            details.classList.toggle('hidden');
-            icon.textContent = details.classList.contains('hidden') ? '▼' : '▲';
+            showMessage("New System Info", "You are now using a Google Apps Script Web App. The old Google Form IDs are no longer relevant. Ensure your Web App URL is correctly pasted in the code!", false);
         };
+        // Remove the unused config check elements for a cleaner UI
+        const oldConfigCheck = document.querySelector('.mt-8.w-full button[onclick="toggleConfigCheck()"]').closest('.mt-8');
+        if (oldConfigCheck) oldConfigCheck.style.display = 'none';
 
         // --- Utility Functions for UI ---
 
@@ -221,11 +211,16 @@
                 modalTitle.classList.add('text-red-400');
                 okButton.classList.replace('bg-green-600', 'bg-red-600');
                 okButton.classList.replace('hover:bg-green-700', 'hover:bg-red-700');
+                modal.querySelector('.border').classList.add('border-red-500');
+                modal.querySelector('.border').classList.remove('border-green-500');
+
             } else {
                 modalTitle.classList.remove('text-red-400');
                 modalTitle.classList.add('text-green-400');
                 okButton.classList.replace('bg-red-600', 'bg-green-600');
                 okButton.classList.replace('hover:bg-red-700', 'hover:bg-green-700');
+                modal.querySelector('.border').classList.remove('border-red-500');
+                modal.querySelector('.border').classList.add('border-green-500');
             }
 
             modal.classList.remove('hidden');
@@ -245,9 +240,9 @@
             document.getElementById('result-code').textContent = '';
             
             // Reset save status display
-            document.getElementById('save-status').textContent = 'Ready.';
-            document.getElementById('save-status').classList.remove('text-red-400', 'text-yellow-400');
-            document.getElementById('save-status').classList.add('text-green-400');
+            saveStatusEl.textContent = 'Ready.';
+            saveStatusEl.classList.remove('text-red-400', 'text-yellow-400');
+            saveStatusEl.classList.add('text-green-400');
             
             // Hide manual input card and reset button text
             const manualCard = document.getElementById('manual-input-card');
@@ -256,7 +251,6 @@
                 document.getElementById('manual-input-button').textContent = 'Manual Input';
             }
 
-
             // Resume scanning after clearing the result
             if (!isScanning) {
                 startScanner();
@@ -264,7 +258,7 @@
         };
 
 
-        // --- Manual Input Logic (New) ---
+        // --- Manual Input Logic ---
 
         const toggleManualInput = () => {
             const manualCard = document.getElementById('manual-input-card');
@@ -280,12 +274,20 @@
                 if (isScanning) {
                     stopScanner();
                 }
+                document.getElementById('manual-code-input').focus();
             }
         };
 
         const submitManualCode = () => {
+            const name = nameInput.value.trim();
             const codeInput = document.getElementById('manual-code-input');
             const code = codeInput.value.trim();
+
+            if (!name) {
+                showMessage("Name Required", "Please enter your Name/Location before submitting.", true);
+                nameInput.focus();
+                return;
+            }
 
             if (!code) {
                 showMessage("Input Required", "Please enter a UPC or Barcode before submitting.", true);
@@ -299,36 +301,42 @@
             updateStatus(`Submitting: ${code}`);
 
             // Set status for submission attempt
-            const saveStatusEl = document.getElementById('save-status');
             saveStatusEl.textContent = `Manual input received! Attempting save...`;
             saveStatusEl.classList.remove('text-green-400', 'text-red-400');
             saveStatusEl.classList.add('text-yellow-400');
 
-            // Call the same save function used by the scanner
-            saveBarcodeToGoogleSheet(code, 'MANUAL');
+            // Call the save function
+            saveScanToSheet(name, code, 'MANUAL');
         };
 
 
-        // --- Google Sheets (via Forms) Logic ---
+        // --- Google Apps Script Submission Logic (REPLACES old form submission) ---
 
-        const saveBarcodeToGoogleSheet = async (code, type) => {
-            const saveStatusEl = document.getElementById('save-status');
+        const saveScanToSheet = async (name, barcode, type) => {
             const MAX_RETRIES = 3;
             let attempt = 0;
 
-            if (GOOGLE_SHEET_FORM_ID.length < 20 || GOOGLE_SHEET_ENTRY_ID.length < 5) {
-                saveStatusEl.textContent = "SETUP ERROR: IDs are missing/too short!";
+            // Persist the name for future scans
+            localStorage.setItem(NAME_INPUT_KEY, name);
+
+            if (WEB_APP_URL === "YOUR_DEPLOYMENT_URL_HERE" || WEB_APP_URL.length < 50) {
+                saveStatusEl.textContent = "SETUP ERROR: Web App URL is missing!";
                 saveStatusEl.classList.remove('text-green-400', 'text-yellow-400');
                 saveStatusEl.classList.add('text-red-400');
-                console.error("Configuration Error: Please ensure GOOGLE_SHEET_FORM_ID and GOOGLE_SHEET_ENTRY_ID are correctly set.");
+                console.error("Configuration Error: Please ensure WEB_APP_URL is correctly set.");
                 return;
             }
 
+            // Construct the payload for the Apps Script
+            const formData = new URLSearchParams();
+            formData.append('name', name);
+            formData.append('barcode', barcode);
+            
             while (attempt < MAX_RETRIES) {
                 attempt++;
 
                 if (attempt > 1) {
-                    const delay = Math.pow(2, attempt) * 500; // 1s, 2s, 4s delay
+                    const delay = Math.pow(2, attempt) * 500; // 2s, 4s, 8s delay
                     saveStatusEl.textContent = `Submission failed. Retrying in ${delay / 1000}s (Attempt ${attempt}/${MAX_RETRIES})...`;
                     saveStatusEl.classList.remove('text-green-400', 'text-red-400');
                     saveStatusEl.classList.add('text-yellow-400');
@@ -340,36 +348,34 @@
                 saveStatusEl.classList.add('text-yellow-400');
 
                 try {
-                    // 1. The URL for submitting Google Form data
-                    const formUrl = `https://docs.google.com/forms/d/e/${GOOGLE_SHEET_FORM_ID}/formResponse`;
+                    console.log(`--- APPS SCRIPT SUBMISSION ATTEMPT ${attempt} START ---`);
+                    console.log(`URL: ${WEB_APP_URL}`);
+                    console.log(`Payload: Name: ${name}, Barcode: ${barcode}`);
                     
-                    // 2. Construct URL-encoded form data (mapping the entry ID to the barcode value)
-                    const formData = new URLSearchParams();
-                    formData.append(GOOGLE_SHEET_ENTRY_ID, code);
-
-                    // --- DEBUG LOGS ---
-                    console.log(`--- GOOGLE FORM SUBMISSION ATTEMPT ${attempt} START ---`);
-                    console.log(`1. Form URL: ${formUrl}`);
-                    console.log(`2. Entry Field ID: ${GOOGLE_SHEET_ENTRY_ID}`);
-                    console.log(`3. Value being sent: ${code}`);
-                    console.log("-----------------------------------------------------");
-                    
-                    // 3. Fetch request uses 'no-cors' mode (prevents reading response but guarantees send)
-                    const response = await fetch(formUrl, {
+                    const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
-                        mode: 'no-cors', 
-                        body: formData,
+                        mode: 'cors', // Use 'cors' mode to read the JSON response
+                        body: formData
                     });
-                    
-                    // On success: update status and exit the function/loop
-                    saveStatusEl.textContent = `Saved to Sheet!`;
-                    saveStatusEl.classList.remove('text-yellow-400');
-                    saveStatusEl.classList.add('text-green-400');
-                    console.log("SUCCESS: Request sent successfully. Data should be in the sheet.");
-                    return; // EXIT FUNCTION ON SUCCESS
+
+                    // We expect a JSON response from the Apps Script
+                    const result = await response.json();
+
+                    if (result.result === 'success') {
+                        // Success! Update status and exit
+                        saveStatusEl.textContent = `SUCCESS! Logged ${result.submitted_data.barcode}.`;
+                        saveStatusEl.classList.remove('text-yellow-400', 'text-red-400');
+                        saveStatusEl.classList.add('text-green-400');
+                        console.log("SUCCESS: Data logged via Apps Script.");
+                        document.getElementById('manual-code-input').value = ''; // Clear manual input after success
+                        return; // EXIT FUNCTION ON SUCCESS
+                    } else {
+                        // Apps Script returned an error response
+                        throw new Error(result.message || 'Server returned an error.');
+                    }
 
                 } catch (e) {
-                    console.error(`Attempt ${attempt} failed with critical error.`, e);
+                    console.error(`Attempt ${attempt} failed:`, e);
                     // The loop continues if attempt < MAX_RETRIES
                 }
             }
@@ -378,7 +384,7 @@
             saveStatusEl.textContent = `SAVE FAILED AFTER ${MAX_RETRIES} RETRIES!`;
             saveStatusEl.classList.remove('text-yellow-400');
             saveStatusEl.classList.add('text-red-400');
-            showMessage("Submission Failure", "The UPC code could not be saved to the Google Form after several attempts. Please verify your Form ID and Entry ID.", true);
+            showMessage("Submission Failure", `The scan could not be saved to the Google Sheet after ${MAX_RETRIES} attempts. Error: ${saveStatusEl.textContent}`, true);
         };
 
 
@@ -391,6 +397,13 @@
                 toggleManualInput();
             }
 
+            const name = nameInput.value.trim();
+            if (!name) {
+                showMessage("Name Required", "Please enter your Name/Location before starting the scanner.", true);
+                nameInput.focus();
+                return;
+            }
+
             console.log("Attempting to start scanner and initialize camera.");
             updateStatus("Initializing camera...");
             document.getElementById('start-button').classList.add('hidden');
@@ -398,51 +411,41 @@
             
             // Configuration for QuaggaJS - OPTIMIZED FOR UPC-A ACCURACY & STABILITY
             const config = {
-                singlePass: true, // Process frames faster on mobile
-                // Tells Quagga to read from the camera
+                singlePass: true, 
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: document.querySelector('#interactive'),
                     constraints: {
-                        // Request a specific resolution for better decoding accuracy
                         width: 1280,
                         height: 720,
-                        // CRITICAL: Tells the browser to use the rear camera on mobile
-                        facingMode: "environment" 
+                        facingMode: "environment" // CRITICAL: Rear camera on mobile
                     },
                 },
-                // Image processing parameters for better low-contrast reading
                 decoders: [{
                     threshold: 0.12, 
                     median: 3, 
                 }],
-                // Set the area of the video stream where Quagga should look for barcodes
                 locator: {
-                    patchSize: "large", // Use large patch for better detection
-                    halfSample: true, // Optimizes speed, crucial for mobile
-                    tryVertical: true, // CRITICAL: Allows reading of rotated (upside-down) barcodes
-                    // Define a concentrated search area (focusing on the center box)
+                    patchSize: "large", 
+                    halfSample: true, 
+                    tryVertical: true, 
                     area: { top: "30%", right: "10%", left: "10%", bottom: "30%" }
                 },
-                // Use maximum workers for faster parallel processing
                 numOfWorkers: 4, 
                 decoder: {
-                    // Supported barcode types - ONLY UPC variants and industrial codes
                     readers: [
                         { format: "upc_reader", config: { normalizeBarSpace: true, minConfidence: 0.95 } },
                         "upc_e_reader",
-                        // Industrial codes - minLength for stability
                         { format: "code_128_reader", config: { minLength: 6 } },
                         { format: "code_39_reader", config: { minLength: 6 } },
                         "codabar_reader",
                         "i2of5_reader"
                     ],
-                    // CRITICAL CHANGE: Persistence set to 80 frames for very high accuracy and stability
                     resultPersistence: 80, 
                     supplements: ['ean_upc'], 
                 },
-                locate: true // Highlight the barcode when found
+                locate: true 
             };
 
             try {
@@ -451,7 +454,6 @@
                     if (err) {
                         console.error("Quagga initialization failed with error:", err);
                         stopScanner();
-                        // Provide a clear message to the user about permissions
                         showMessage("Camera Access Required", `Failed to start camera. Please ensure your browser has camera access permission. Error detail: ${err.message}`, true);
                         return;
                     }
@@ -460,7 +462,6 @@
                     updateStatus("Scanning for barcodes...");
                 });
             } catch (error) {
-                // Catch any synchronous error during Quagga.init setup
                 console.error("Initialization failed synchronously:", error);
                 stopScanner();
                 showMessage("Setup Error", "A fatal error occurred during scanner setup. Check console for details.", true);
@@ -490,22 +491,19 @@
             // Stop scanning immediately after the first successful detection
             stopScanner();
             
-            console.log("SUCCESS: Barcode detected, stopping scanner and preparing to save."); 
+            console.log("SUCCESS: Barcode detected, stopping scanner and preparing to save.");
             
+            let name = nameInput.value.trim();
             let code = result.codeResult.code;
             let type = result.codeResult.format.toUpperCase();
 
-            // --- START: CUSTOM LOGIC TO ENSURE 12-DIGIT UPC-A ---
-            // If the code is a 13-digit EAN that starts with '0' (the UPC conversion), 
-            // we strip the leading '0' to get the 12-digit UPC-A.
+            // Custom logic to ensure 12-digit UPC-A
             if (code.length === 13 && code.startsWith('0')) {
-                code = code.substring(1); // Strip the leading '0' to get 12 digits
+                code = code.substring(1); 
                 type = 'UPC-A (12-Digit)'; 
             } else if (type === 'UPC_A' || type === 'UPC_E') {
-                // Set the type for standard UPC results
                 type = `${type} (${code.length}-Digit)`;
             }
-            // --- END: CUSTOM LOGIC ---
 
             // Display the result
             document.getElementById('result-type').textContent = type;
@@ -513,19 +511,17 @@
             document.getElementById('result-card').classList.remove('hidden');
             updateStatus(`Found: ${code}`);
 
-            // --- CRITICAL VISUAL CONFIRMATION ADDED HERE ---
-            const saveStatusEl = document.getElementById('save-status');
+            // CRITICAL VISUAL CONFIRMATION 
             saveStatusEl.textContent = `Scanned! Attempting save...`;
             saveStatusEl.classList.remove('text-green-400', 'text-red-400');
             saveStatusEl.classList.add('text-yellow-400');
-            // ----------------------------------------------
-
-            // Save the result to the Google Sheet (via form)
-            saveBarcodeToGoogleSheet(code, type);
+            
+            // Save the result to the Google Sheet (via Apps Script)
+            saveScanToSheet(name, code, type);
         };
 
 
-        // --- Handle Quagga drawing (optional but useful for debugging/visuals) ---
+        // --- Handle Quagga drawing (Visuals) ---
         Quagga.onProcessed(function(result) {
             var drawingCtx = Quagga.canvas.ctx.overlay,
                 drawingCanvas = Quagga.canvas.dom.overlay;
@@ -553,4 +549,3 @@
     </script>
 </body>
 </html>
-
