@@ -145,11 +145,12 @@
 
     <script>
         // ====================================================================
-        // IMPORTANT: REPLACE THESE PLACEHOLDERS WITH YOUR ACTUAL IDs
+        // IMPORTANT: Configuration is now correct based on your pre-filled link.
         // ====================================================================
-        const GOOGLE_SHEET_FORM_ID = "1G6i9IfoFMlPtsXyPWs1ARWYm5CP1VzYgEbe0LKVwlk4"; // Form ID updated!
-        // The Entry ID is the 'entry.XXX' name associated with your barcode question.
-        const GOOGLE_SHEET_ENTRY_ID = "entry.78591346"; // Please verify this ENTRY_ID
+        const GOOGLE_SHEET_FORM_ID = "1FAIpQLSdzJQmlhdCtxFsxfaVymja1AEJyzJ0RjQ0gm7JycyYff3xTg"; 
+        
+        // This Entry ID (entry.78591346) was confirmed by your link to be correct.
+        const GOOGLE_SHEET_ENTRY_ID = "entry.78591346"; 
         // ====================================================================
 
 
@@ -234,13 +235,15 @@
 
                 console.log(`Submitting: Form ID: ${GOOGLE_SHEET_FORM_ID}, Entry ID: ${GOOGLE_SHEET_ENTRY_ID}, Value: ${code}`);
 
+                // Fetch request uses 'no-cors' mode as the Google Forms endpoint doesn't return CORS headers.
+                // This means we cannot read the response status, but we know the request was sent.
                 const response = await fetch(formUrl, {
                     method: 'POST',
-                    mode: 'no-cors', // Must use no-cors to avoid CORS issues on client-side form submissions
+                    mode: 'no-cors', 
                     body: formData,
                 });
 
-                // A successful fetch() call here indicates the data was sent to Google's endpoint.
+                // Since we use 'no-cors', a successful fetch call here generally indicates data was sent.
                 saveStatusEl.textContent = `Saved to Sheet!`;
                 saveStatusEl.classList.remove('text-yellow-400');
                 saveStatusEl.classList.add('text-green-400');
