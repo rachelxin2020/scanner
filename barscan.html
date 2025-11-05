@@ -118,7 +118,7 @@
         <!-- Result Card -->
         <div id="result-card" class="mt-8 p-4 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-xl hidden">
             <h2 class="text-xl font-semibold mb-2 text-green-300">Scan Result</h2>
-            <div class="space-y-1">
+            <div class="space-space-y-1">
                 <p class="text-sm text-gray-400">Type:</p>
                 <p id="result-type" class="text-lg font-bold text-white"></p>
                 <p class="text-sm text-gray-400 pt-2">Code:</p>
@@ -199,38 +199,48 @@
             document.getElementById('start-button').classList.add('hidden');
             document.getElementById('stop-button').classList.remove('hidden');
             
-            // Configuration for QuaggaJS
+            // Configuration for QuaggaJS - OPTIMIZED FOR ACCURACY
             const config = {
+                singlePass: true, // Process frames faster on mobile
                 // Tells Quagga to read from the camera
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: document.querySelector('#interactive'),
                     constraints: {
-                        // Use the rear camera on mobile devices
+                        // Request a specific resolution for better decoding accuracy
+                        width: 1280,
+                        height: 720,
                         facingMode: "environment" 
                     },
                 },
                 // Set the area of the video stream where Quagga should look for barcodes
                 locator: {
-                    patchSize: "medium",
-                    halfSample: true
+                    patchSize: "large", // Use large patch for better detection on high resolution
+                    halfSample: false, // Don't half-sample, use full detail
+                    // Define a concentrated search area (focusing on the center box)
+                    area: { top: "30%", right: "10%", left: "10%", bottom: "30%" }
                 },
-                // Configuration for how to process the images
-                numOfWorkers: 2,
+                // Use maximum workers for faster parallel processing
+                numOfWorkers: 4, 
                 decoder: {
                     // Supported barcode types
                     readers: [
-                        "code_128_reader",
-                        "ean_reader",
+                        // Optimized reader settings for UPC/EAN (retail)
+                        { format: "ean_reader", config: { normalizeBarSpace: true } },
+                        { format: "upc_reader", config: { normalizeBarSpace: true } },
                         "ean_8_reader",
-                        "code_39_reader",
-                        "code_39_vin_reader",
-                        "codabar_reader",
-                        "upc_reader",
                         "upc_e_reader",
+                        // Other industrial/misc codes - added minLength for stability
+                        { format: "code_128_reader", config: { minLength: 6 } },
+                        { format: "code_39_reader", config: { minLength: 6 } },
+                        "codabar_reader",
                         "i2of5_reader"
-                    ]
+                    ],
+                    // *** CRUCIAL IMPROVEMENT: Code must be detected over 15 frames to confirm ***
+                    resultPersistence: 15,
+                    // Ensure full UPC/EAN codes (with add-ons) are decoded
+                    supplements: ['ean_upc'], 
                 },
                 locate: true // Highlight the barcode when found
             };
