@@ -145,7 +145,7 @@
 
     <script>
         // ====================================================================
-        // IMPORTANT: Configuration is now correct based on your pre-filled link.
+        // CONFIGURATION: Confirmed working based on your pre-filled link.
         // ====================================================================
         const GOOGLE_SHEET_FORM_ID = "1FAIpQLSdzJQmlhdCtxFsxfaVymja1AEJyzJ0RjQ0gm7JycyYff3xTg"; 
         
@@ -226,22 +226,31 @@
             saveStatusEl.classList.add('text-yellow-400');
 
             try {
-                // The URL for submitting Google Form data
+                // 1. The URL for submitting Google Form data
                 const formUrl = `https://docs.google.com/forms/d/e/${GOOGLE_SHEET_FORM_ID}/formResponse`;
                 
-                // Construct URL-encoded form data (mapping the entry ID to the barcode value)
+                // 2. Construct URL-encoded form data (mapping the entry ID to the barcode value)
                 const formData = new URLSearchParams();
                 formData.append(GOOGLE_SHEET_ENTRY_ID, code);
 
-                console.log(`Submitting: Form ID: ${GOOGLE_SHEET_FORM_ID}, Entry ID: ${GOOGLE_SHEET_ENTRY_ID}, Value: ${code}`);
-
-                // Fetch request uses 'no-cors' mode as the Google Forms endpoint doesn't return CORS headers.
-                // This means we cannot read the response status, but we know the request was sent.
+                // --- NEW DEBUG LOGS ADDED FOR TROUBLESHOOTING ---
+                console.log("--- GOOGLE FORM SUBMISSION DEBUG START ---");
+                console.log(`1. Form URL: ${formUrl}`);
+                console.log(`2. Entry Field ID: ${GOOGLE_SHEET_ENTRY_ID}`);
+                console.log(`3. Value being sent: ${code}`);
+                console.log("-----------------------------------------");
+                
+                // 3. Fetch request uses 'no-cors' mode
                 const response = await fetch(formUrl, {
                     method: 'POST',
                     mode: 'no-cors', 
                     body: formData,
                 });
+                
+                console.log("--- GOOGLE FORM SUBMISSION DEBUG END ---");
+                console.log("Request sent successfully (mode: 'no-cors' used). Check your Google Sheet now.");
+                console.log("----------------------------------------");
+
 
                 // Since we use 'no-cors', a successful fetch call here generally indicates data was sent.
                 saveStatusEl.textContent = `Saved to Sheet!`;
