@@ -3,344 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobile Barcode Scanner</title>
-    <!-- Load Tailwind CSS for modern, responsive styling -->
+    <title>Test UPS Barcode</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Load QuaggaJS library for barcode scanning -->
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
-
+    <!-- js-barcode library for generating barcodes locally -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0d1117; /* Dark background */
-            min-height: 100vh;
+            background-color: #f7f7f7;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 1rem;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
         }
-
-        #scanner-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px; /* Maximize for typical phone screen */
-            margin-bottom: 1rem;
+        .container {
+            background: white;
+            padding: 2rem;
             border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            aspect-ratio: 1 / 1; /* Keep the video frame square */
-            background-color: #000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 90%;
+            width: 500px;
         }
-
-        #interactive.viewport {
-            width: 100%;
-            height: 100%;
-            position: relative;
+        svg {
+            margin: 20px 0;
+            max-width: 100%;
+            height: auto;
         }
-
-        /* QuaggaJS targets the video and canvas elements inside the viewport */
-        #interactive.viewport video,
-        #interactive.viewport canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Fill the container without distortion */
-        }
-
-        /* Highlighting box for the scan area */
-        .drawingBuffer {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        
-        .code-39-box {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%; /* Adjust to cover the main scanning area */
-            height: 30%;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 4px;
-            box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.6); /* Darkens surrounding area */
-            pointer-events: none; /* Allows clicks to pass through */
-        }
-
-        /* Scan Line Animation */
-        .scan-line {
-            position: absolute;
-            top: 50%;
-            left: 10%;
-            width: 80%;
-            height: 2px;
-            background-color: #4ade80; /* Green line */
-            box-shadow: 0 0 10px #4ade80;
-            transform: translateY(-50%);
-            animation: scan-move 2s infinite alternate linear;
-        }
-
-        @keyframes scan-move {
-            0% { top: 35%; opacity: 0.8; }
-            100% { top: 65%; opacity: 0.8; }
+        p {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #333;
         }
     </style>
 </head>
 <body>
 
-    <div class="w-full max-w-sm text-white flex flex-col items-center">
-        <h1 class="text-3xl font-bold mb-4 text-green-400">Barcode Scanner</h1>
-        <p id="status-message" class="text-sm text-gray-400 mb-6">Tap "Start Scan" to activate the camera.</p>
-
-        <div id="scanner-container">
-            <!-- QuaggaJS will insert video/canvas elements here -->
-            <div id="interactive" class="viewport">
-                <!-- Visual cue for scanning area -->
-                <div class="code-39-box">
-                    <div class="scan-line"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="controls" class="w-full space-y-4">
-            <button id="start-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg shadow-green-900/50" onclick="startScanner()">
-                Start Scan
-            </button>
-            <button id="stop-button" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg shadow-red-900/50 hidden" onclick="stopScanner()">
-                Stop Scan
-            </button>
-        </div>
-
-        <!-- Result Card -->
-        <div id="result-card" class="mt-8 p-4 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-xl hidden">
-            <h2 class="text-xl font-semibold mb-2 text-green-300">Scan Result</h2>
-            <div class="space-space-y-1">
-                <p class="text-sm text-gray-400">Type:</p>
-                <p id="result-type" class="text-lg font-bold text-white"></p>
-                <p class="text-sm text-gray-400 pt-2">Code:</p>
-                <p id="result-code" class="text-2xl font-extrabold text-yellow-300 break-words"></p>
-            </div>
-            <button id="clear-button" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg text-sm" onclick="clearResult()">
-                Clear Result
-            </button>
-        </div>
+    <div class="container">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">UPS Tracking Barcode (Code 128)</h1>
+        <p class="text-sm text-gray-500 mb-2">Use your scanner app to scan this barcode.</p>
         
-        <!-- Error/Message Modal -->
-        <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden">
-            <div class="bg-gray-900 p-6 rounded-xl shadow-2xl max-w-sm w-full border border-red-500">
-                <h3 class="text-xl font-bold text-red-400 mb-3">Error</h3>
-                <p id="modal-content" class="text-gray-300 text-sm mb-4">An unknown error occurred.</p>
-                <button onclick="closeModal()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold">
-                    OK
-                </button>
-            </div>
+        <!-- SVG element where the barcode will be drawn -->
+        <svg id="barcode"></svg>
+        
+        <p id="tracking-number"></p>
+        
+        <div class="mt-4">
+            <h2 class="text-xl font-semibold text-red-600">Important Note:</h2>
+            <p class="text-sm text-gray-600">
+                For the best scan, ensure your screen brightness is high and the code is flat, with no glare.
+            </p>
         </div>
     </div>
 
     <script>
-        // Global state to track scanner status
-        let isScanning = false;
-        
-        // --- Utility Functions for UI ---
+        const trackingCode = "1Z9999999999999999"; 
 
-        const showMessage = (title, message, isError = false) => {
-            const modal = document.getElementById('message-modal');
-            const modalTitle = modal.querySelector('h3');
-            const modalContent = document.getElementById('modal-content');
-            const okButton = modal.querySelector('button');
-
-            modalTitle.textContent = title;
-            modalContent.textContent = message;
-            
-            if (isError) {
-                modalTitle.classList.remove('text-green-400');
-                modalTitle.classList.add('text-red-400');
-                okButton.classList.replace('bg-green-600', 'bg-red-600');
-                okButton.classList.replace('hover:bg-green-700', 'hover:bg-red-700');
-            } else {
-                modalTitle.classList.remove('text-red-400');
-                modalTitle.classList.add('text-green-400');
-                okButton.classList.replace('bg-red-600', 'bg-green-600');
-                okButton.classList.replace('hover:bg-red-700', 'hover:bg-green-700');
-            }
-
-            modal.classList.remove('hidden');
-        };
-
-        const closeModal = () => {
-            document.getElementById('message-modal').classList.add('hidden');
-        };
-
-        const updateStatus = (message) => {
-            document.getElementById('status-message').textContent = message;
-        };
-        
-        const clearResult = () => {
-            document.getElementById('result-card').classList.add('hidden');
-            document.getElementById('result-type').textContent = '';
-            document.getElementById('result-code').textContent = '';
-            // Resume scanning after clearing the result
-            if (!isScanning) {
-                startScanner();
-            }
-        };
-
-
-        // --- QuaggaJS Scanner Logic ---
-
-        const startScanner = async () => {
-            if (isScanning) return;
-
-            updateStatus("Initializing camera...");
-            document.getElementById('start-button').classList.add('hidden');
-            document.getElementById('stop-button').classList.remove('hidden');
-            
-            // Configuration for QuaggaJS - OPTIMIZED FOR UPC-A ACCURACY & STABILITY
-            const config = {
-                singlePass: true, // Process frames faster on mobile
-                // Tells Quagga to read from the camera
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: document.querySelector('#interactive'),
-                    constraints: {
-                        // Request a specific resolution for better decoding accuracy
-                        width: 1280,
-                        height: 720,
-                        facingMode: "environment" 
-                    },
-                },
-                // Image processing parameters for better low-contrast reading
-                decoders: [{
-                    threshold: 0.12, 
-                    median: 3, 
-                }],
-                // Set the area of the video stream where Quagga should look for barcodes
-                locator: {
-                    patchSize: "large", // Use large patch for better detection
-                    halfSample: true, // Optimizes speed, crucial for mobile
-                    // Define a concentrated search area (focusing on the center box)
-                    area: { top: "30%", right: "10%", left: "10%", bottom: "30%" }
-                },
-                // Use maximum workers for faster parallel processing
-                numOfWorkers: 4, 
-                decoder: {
-                    // Supported barcode types - ONLY UPC variants and industrial codes
-                    readers: [
-                        { format: "upc_reader", config: { normalizeBarSpace: true, minConfidence: 0.95 } },
-                        "upc_e_reader",
-                        // Industrial codes - minLength for stability
-                        { format: "code_128_reader", config: { minLength: 6 } },
-                        { format: "code_39_reader", config: { minLength: 6 } },
-                        "codabar_reader",
-                        "i2of5_reader"
-                    ],
-                    // CRITICAL CHANGE: Increased persistence to 50 frames for higher accuracy
-                    resultPersistence: 50, 
-                    supplements: ['ean_upc'], 
-                },
-                locate: true // Highlight the barcode when found
-            };
-
-            try {
-                // Initialize Quagga
-                await Quagga.init(config, (err) => {
-                    if (err) {
-                        console.error(err);
-                        stopScanner();
-                        showMessage("Camera Error", `Failed to start camera: ${err.message}. Please ensure camera access is allowed.`, true);
-                        return;
-                    }
-                    Quagga.start();
-                    isScanning = true;
-                    updateStatus("Scanning for barcodes...");
-                });
-            } catch (error) {
-                console.error("Initialization failed:", error);
-                stopScanner();
-                showMessage("Initialization Error", "The scanner could not start. Please check your browser's console for details.", true);
-                return;
-            }
-
-            // Event listener for when a barcode is detected
-            Quagga.onDetected(handleDetected);
-        };
-
-        const stopScanner = () => {
-            if (!isScanning) return;
-
-            Quagga.stop();
-            isScanning = false;
-            document.getElementById('start-button').classList.remove('hidden');
-            document.getElementById('stop-button').classList.add('hidden');
-            updateStatus("Scan stopped.");
-
-            // Remove any leftover canvas drawing buffers
-            const viewport = document.querySelector('#interactive');
-            const drawingBuffers = viewport.querySelectorAll('.drawingBuffer');
-            drawingBuffers.forEach(buffer => buffer.remove());
-        };
-
-        const handleDetected = (result) => {
-            // Stop scanning immediately after the first successful detection
-            stopScanner();
-            
-            let code = result.codeResult.code;
-            let type = result.codeResult.format.toUpperCase();
-
-            // --- START: CUSTOM LOGIC TO ENSURE 12-DIGIT UPC-A ---
-            // If the code is a 13-digit EAN that starts with '0' (the UPC conversion), 
-            // we strip the leading '0' to get the 12-digit UPC-A.
-            if (code.length === 13 && code.startsWith('0')) {
-                code = code.substring(1); // Strip the leading '0' to get 12 digits
-                type = 'UPC-A (12-Digit)'; 
-            } else if (type === 'UPC_A' || type === 'UPC_E') {
-                // Set the type for standard UPC results
-                type = `${type} (${code.length}-Digit)`;
-            }
-            // --- END: CUSTOM LOGIC ---
-
-            // Display the result
-            document.getElementById('result-type').textContent = type;
-            document.getElementById('result-code').textContent = code;
-            document.getElementById('result-card').classList.remove('hidden');
-            updateStatus(`Found: ${code}`);
-
-            // You would normally send this data to a server or process it here.
-            console.log("Barcode detected:", code, "Type:", type);
-            // Optional: You can add an audio cue here using Tone.js if desired
-        };
-
-
-        // --- Handle Quagga drawing (optional but useful for debugging/visuals) ---
-        Quagga.onProcessed(function(result) {
-            var drawingCtx = Quagga.canvas.ctx.overlay,
-                drawingCanvas = Quagga.canvas.dom.overlay;
-
-            if (result) {
-                if (result.boxes) {
-                    drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
-                    result.boxes.filter(function(box) {
-                        return box !== result.box;
-                    }).forEach(function(box) {
-                        Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: "green", lineWidth: 2});
-                    });
-                }
-
-                if (result.box) {
-                    Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: "#00F", lineWidth: 2});
-                }
-
-                if (result.codeResult && result.codeResult.code) {
-                    Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: "red", lineWidth: 3});
-                }
-            }
+        // Generate the Code 128 Barcode
+        JsBarcode("#barcode", trackingCode, {
+            format: "CODE128", // Explicitly use Code 128
+            displayValue: true,
+            fontSize: 18,
+            margin: 10,
+            width: 2, // Width of the narrowest bar
+            height: 100 // Height of the barcode bars
         });
 
+        document.getElementById('tracking-number').textContent = trackingCode;
     </script>
 </body>
 </html>
