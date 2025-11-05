@@ -239,8 +239,8 @@
                         "codabar_reader",
                         "i2of5_reader"
                     ],
-                    // CRITICAL CHANGE: Code must be detected over 30 frames for stability
-                    resultPersistence: 30, 
+                    // CRITICAL CHANGE: Increased persistence to 50 frames for higher accuracy
+                    resultPersistence: 50, 
                     supplements: ['ean_upc'], 
                 },
                 locate: true // Highlight the barcode when found
@@ -293,12 +293,13 @@
             let type = result.codeResult.format.toUpperCase();
 
             // --- START: CUSTOM LOGIC TO ENSURE 12-DIGIT UPC-A ---
-            // Even though we removed the EAN reader, sometimes the UPC reader outputs EAN_13 (13 digits) 
-            // starting with '0'. We force it back to 12 digits here.
+            // If the code is a 13-digit EAN that starts with '0' (the UPC conversion), 
+            // we strip the leading '0' to get the 12-digit UPC-A.
             if (code.length === 13 && code.startsWith('0')) {
                 code = code.substring(1); // Strip the leading '0' to get 12 digits
                 type = 'UPC-A (12-Digit)'; 
             } else if (type === 'UPC_A' || type === 'UPC_E') {
+                // Set the type for standard UPC results
                 type = `${type} (${code.length}-Digit)`;
             }
             // --- END: CUSTOM LOGIC ---
