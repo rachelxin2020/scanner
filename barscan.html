@@ -7,7 +7,7 @@
     <!-- Load Tailwind CSS for modern, responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Inter font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
     <!-- Load QuaggaJS library for barcode scanning -->
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 
@@ -96,7 +96,7 @@
         <h1 class="text-3xl font-bold mb-4 text-green-400">Barcode Scanner</h1>
         <!-- Updated status display for Google Sheets -->
         <p id="status-message" class="text-sm text-gray-400 mb-1">Sheet status: <span id="save-status" class="text-green-400">Ready.</span></p>
-        <p class="text-sm text-gray-400 mb-6">Tap "Start Scan" to activate the camera.</p>
+        <p class="text-sm text-gray-400 mb-6">Tap "Start Scan" or use Manual Input.</p>
 
         <div id="scanner-container">
             <!-- QuaggaJS will insert video/canvas elements here -->
@@ -114,6 +114,19 @@
             </button>
             <button id="stop-button" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg shadow-red-900/50 hidden" onclick="stopScanner()">
                 Stop Scan
+            </button>
+            
+            <button id="manual-input-button" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg shadow-gray-900/50" onclick="toggleManualInput()">
+                Manual Input
+            </button>
+        </div>
+
+        <!-- Manual Input Card (New) -->
+        <div id="manual-input-card" class="mt-8 p-4 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-xl hidden">
+            <h2 class="text-xl font-semibold mb-3 text-blue-300">Enter Code Manually</h2>
+            <input type="text" id="manual-code-input" placeholder="Enter UPC or Barcode" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition" onclick="submitManualCode()">
+                Submit Code
             </button>
         </div>
 
@@ -141,6 +154,27 @@
                 </button>
             </div>
         </div>
+
+        <!-- Configuration Check Card -->
+        <div class="mt-8 w-full">
+            <button onclick="toggleConfigCheck()" class="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 text-sm font-semibold rounded-lg text-gray-200">
+                <span id="config-toggle-icon">▼</span> Configuration Check (Troubleshooting)
+            </button>
+            <div id="config-check-details" class="mt-2 p-4 bg-gray-800 border border-gray-700 rounded-lg text-xs space-y-2 hidden">
+                <p class="text-red-400 font-bold">CRITICAL: These values MUST match your Google Form:</p>
+                
+                <div>
+                    <label class="text-gray-400 block mb-1">Google Sheet Form ID (from the Form's URL):</label>
+                    <p id="display-form-id" class="text-yellow-300 break-all"></p>
+                </div>
+                
+                <div>
+                    <label class="text-gray-400 block mb-1">Google Form Entry ID (from the field name):</label>
+                    <p id="display-entry-id" class="text-yellow-300 break-all"></p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -157,6 +191,20 @@
         // Global state to track scanner status
         let isScanning = false;
         
+        // --- Configuration Display Logic ---
+        window.onload = () => {
+            // Populate the configuration check card on load
+            document.getElementById('display-form-id').textContent = GOOGLE_SHEET_FORM_ID;
+            document.getElementById('display-entry-id').textContent = GOOGLE_SHEET_ENTRY_ID;
+        };
+
+        const toggleConfigCheck = () => {
+            const details = document.getElementById('config-check-details');
+            const icon = document.getElementById('config-toggle-icon');
+            details.classList.toggle('hidden');
+            icon.textContent = details.classList.contains('hidden') ? '▼' : '▲';
+        };
+
         // --- Utility Functions for UI ---
 
         const showMessage = (title, message, isError = false) => {
@@ -200,6 +248,14 @@
             document.getElementById('save-status').textContent = 'Ready.';
             document.getElementById('save-status').classList.remove('text-red-400', 'text-yellow-400');
             document.getElementById('save-status').classList.add('text-green-400');
+            
+            // Hide manual input card and reset button text
+            const manualCard = document.getElementById('manual-input-card');
+            if (!manualCard.classList.contains('hidden')) {
+                manualCard.classList.add('hidden');
+                document.getElementById('manual-input-button').textContent = 'Manual Input';
+            }
+
 
             // Resume scanning after clearing the result
             if (!isScanning) {
@@ -208,11 +264,58 @@
         };
 
 
+        // --- Manual Input Logic (New) ---
+
+        const toggleManualInput = () => {
+            const manualCard = document.getElementById('manual-input-card');
+            const button = document.getElementById('manual-input-button');
+            
+            manualCard.classList.toggle('hidden');
+
+            if (manualCard.classList.contains('hidden')) {
+                button.textContent = 'Manual Input';
+            } else {
+                button.textContent = 'Hide Manual Input';
+                // Stop the camera if the manual input is opened
+                if (isScanning) {
+                    stopScanner();
+                }
+            }
+        };
+
+        const submitManualCode = () => {
+            const codeInput = document.getElementById('manual-code-input');
+            const code = codeInput.value.trim();
+
+            if (!code) {
+                showMessage("Input Required", "Please enter a UPC or Barcode before submitting.", true);
+                return;
+            }
+
+            // Display the result locally
+            document.getElementById('result-type').textContent = 'MANUAL_ENTRY';
+            document.getElementById('result-code').textContent = code;
+            document.getElementById('result-card').classList.remove('hidden');
+            updateStatus(`Submitting: ${code}`);
+
+            // Set status for submission attempt
+            const saveStatusEl = document.getElementById('save-status');
+            saveStatusEl.textContent = `Manual input received! Attempting save...`;
+            saveStatusEl.classList.remove('text-green-400', 'text-red-400');
+            saveStatusEl.classList.add('text-yellow-400');
+
+            // Call the same save function used by the scanner
+            saveBarcodeToGoogleSheet(code, 'MANUAL');
+        };
+
+
         // --- Google Sheets (via Forms) Logic ---
 
         const saveBarcodeToGoogleSheet = async (code, type) => {
             const saveStatusEl = document.getElementById('save-status');
-            
+            const MAX_RETRIES = 3;
+            let attempt = 0;
+
             if (GOOGLE_SHEET_FORM_ID.length < 20 || GOOGLE_SHEET_ENTRY_ID.length < 5) {
                 saveStatusEl.textContent = "SETUP ERROR: IDs are missing/too short!";
                 saveStatusEl.classList.remove('text-green-400', 'text-yellow-400');
@@ -221,48 +324,61 @@
                 return;
             }
 
-            saveStatusEl.textContent = `Saving to Sheet...`;
-            saveStatusEl.classList.remove('text-green-400', 'text-red-400');
-            saveStatusEl.classList.add('text-yellow-400');
+            while (attempt < MAX_RETRIES) {
+                attempt++;
 
-            try {
-                // 1. The URL for submitting Google Form data
-                const formUrl = `https://docs.google.com/forms/d/e/${GOOGLE_SHEET_FORM_ID}/formResponse`;
-                
-                // 2. Construct URL-encoded form data (mapping the entry ID to the barcode value)
-                const formData = new URLSearchParams();
-                formData.append(GOOGLE_SHEET_ENTRY_ID, code);
+                if (attempt > 1) {
+                    const delay = Math.pow(2, attempt) * 500; // 1s, 2s, 4s delay
+                    saveStatusEl.textContent = `Submission failed. Retrying in ${delay / 1000}s (Attempt ${attempt}/${MAX_RETRIES})...`;
+                    saveStatusEl.classList.remove('text-green-400', 'text-red-400');
+                    saveStatusEl.classList.add('text-yellow-400');
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
 
-                // --- NEW DEBUG LOGS ADDED FOR TROUBLESHOOTING ---
-                console.log("--- GOOGLE FORM SUBMISSION DEBUG START ---");
-                console.log(`1. Form URL: ${formUrl}`);
-                console.log(`2. Entry Field ID: ${GOOGLE_SHEET_ENTRY_ID}`);
-                console.log(`3. Value being sent: ${code}`);
-                console.log("-----------------------------------------");
-                
-                // 3. Fetch request uses 'no-cors' mode
-                const response = await fetch(formUrl, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    body: formData,
-                });
-                
-                console.log("--- GOOGLE FORM SUBMISSION DEBUG END ---");
-                console.log("Request sent successfully (mode: 'no-cors' used). Check your Google Sheet now.");
-                console.log("----------------------------------------");
+                saveStatusEl.textContent = `Submitting data... (Attempt ${attempt}/${MAX_RETRIES})`;
+                saveStatusEl.classList.remove('text-green-400', 'text-red-400');
+                saveStatusEl.classList.add('text-yellow-400');
 
+                try {
+                    // 1. The URL for submitting Google Form data
+                    const formUrl = `https://docs.google.com/forms/d/e/${GOOGLE_SHEET_FORM_ID}/formResponse`;
+                    
+                    // 2. Construct URL-encoded form data (mapping the entry ID to the barcode value)
+                    const formData = new URLSearchParams();
+                    formData.append(GOOGLE_SHEET_ENTRY_ID, code);
 
-                // Since we use 'no-cors', a successful fetch call here generally indicates data was sent.
-                saveStatusEl.textContent = `Saved to Sheet!`;
-                saveStatusEl.classList.remove('text-yellow-400');
-                saveStatusEl.classList.add('text-green-400');
+                    // --- DEBUG LOGS ---
+                    console.log(`--- GOOGLE FORM SUBMISSION ATTEMPT ${attempt} START ---`);
+                    console.log(`1. Form URL: ${formUrl}`);
+                    console.log(`2. Entry Field ID: ${GOOGLE_SHEET_ENTRY_ID}`);
+                    console.log(`3. Value being sent: ${code}`);
+                    console.log("-----------------------------------------------------");
+                    
+                    // 3. Fetch request uses 'no-cors' mode (prevents reading response but guarantees send)
+                    const response = await fetch(formUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', 
+                        body: formData,
+                    });
+                    
+                    // On success: update status and exit the function/loop
+                    saveStatusEl.textContent = `Saved to Sheet!`;
+                    saveStatusEl.classList.remove('text-yellow-400');
+                    saveStatusEl.classList.add('text-green-400');
+                    console.log("SUCCESS: Request sent successfully. Data should be in the sheet.");
+                    return; // EXIT FUNCTION ON SUCCESS
 
-            } catch (e) {
-                console.error("Critical Error submitting to Google Form. Check network tab for details and verify your IDs.", e);
-                saveStatusEl.textContent = `Save Failed! (Check console for error)`;
-                saveStatusEl.classList.remove('text-yellow-400');
-                saveStatusEl.classList.add('text-red-400');
+                } catch (e) {
+                    console.error(`Attempt ${attempt} failed with critical error.`, e);
+                    // The loop continues if attempt < MAX_RETRIES
+                }
             }
+            
+            // Only runs if the loop completes (all retries failed)
+            saveStatusEl.textContent = `SAVE FAILED AFTER ${MAX_RETRIES} RETRIES!`;
+            saveStatusEl.classList.remove('text-yellow-400');
+            saveStatusEl.classList.add('text-red-400');
+            showMessage("Submission Failure", "The UPC code could not be saved to the Google Form after several attempts. Please verify your Form ID and Entry ID.", true);
         };
 
 
@@ -270,6 +386,10 @@
 
         const startScanner = async () => {
             if (isScanning) return;
+            // Hide manual input card if it's open
+            if (!document.getElementById('manual-input-card').classList.contains('hidden')) {
+                toggleManualInput();
+            }
 
             console.log("Attempting to start scanner and initialize camera.");
             updateStatus("Initializing camera...");
@@ -370,6 +490,8 @@
             // Stop scanning immediately after the first successful detection
             stopScanner();
             
+            console.log("SUCCESS: Barcode detected, stopping scanner and preparing to save."); 
+            
             let code = result.codeResult.code;
             let type = result.codeResult.format.toUpperCase();
 
@@ -391,7 +513,14 @@
             document.getElementById('result-card').classList.remove('hidden');
             updateStatus(`Found: ${code}`);
 
-            // NEW: Save the result to the Google Sheet (via form)
+            // --- CRITICAL VISUAL CONFIRMATION ADDED HERE ---
+            const saveStatusEl = document.getElementById('save-status');
+            saveStatusEl.textContent = `Scanned! Attempting save...`;
+            saveStatusEl.classList.remove('text-green-400', 'text-red-400');
+            saveStatusEl.classList.add('text-yellow-400');
+            // ----------------------------------------------
+
+            // Save the result to the Google Sheet (via form)
             saveBarcodeToGoogleSheet(code, type);
         };
 
