@@ -143,15 +143,13 @@
         </div>
     </div>
 
-    <!-- Removed type="module" to ensure functions are globally accessible by the HTML onclick attributes -->
     <script>
         // ====================================================================
-        // CONFIGURATION COMPLETE!
-        // The scanner will now send data to your Google Form/Sheet.
+        // IMPORTANT: REPLACE THESE PLACEHOLDERS WITH YOUR ACTUAL IDs
         // ====================================================================
-        const GOOGLE_SHEET_FORM_ID = "1G6i9IfoFMlPtsXyPWs1ARWYm5CP1VzYgEbe0LKVwlk4";
+        const GOOGLE_SHEET_FORM_ID = "1G6i9IfoFMlPtsXyPWs1ARWYm5CP1VzYgEbe0LKVwlk4"; // Form ID updated!
         // The Entry ID is the 'entry.XXX' name associated with your barcode question.
-        const GOOGLE_SHEET_ENTRY_ID = "entry.78591346"; 
+        const GOOGLE_SHEET_ENTRY_ID = "entry.78591346"; // Please verify this ENTRY_ID
         // ====================================================================
 
 
@@ -213,12 +211,12 @@
 
         const saveBarcodeToGoogleSheet = async (code, type) => {
             const saveStatusEl = document.getElementById('save-status');
-
-            if (GOOGLE_SHEET_ENTRY_ID.includes('YOUR_ENTRY_ID_HERE')) {
-                // This block should never be hit now that the ID is set!
-                saveStatusEl.textContent = "SETUP ERROR: Entry ID missing!";
+            
+            if (GOOGLE_SHEET_FORM_ID.length < 20 || GOOGLE_SHEET_ENTRY_ID.length < 5) {
+                saveStatusEl.textContent = "SETUP ERROR: IDs are missing/too short!";
                 saveStatusEl.classList.remove('text-green-400', 'text-yellow-400');
                 saveStatusEl.classList.add('text-red-400');
+                console.error("Configuration Error: Please ensure GOOGLE_SHEET_FORM_ID and GOOGLE_SHEET_ENTRY_ID are correctly set.");
                 return;
             }
 
@@ -233,7 +231,8 @@
                 // Construct URL-encoded form data (mapping the entry ID to the barcode value)
                 const formData = new URLSearchParams();
                 formData.append(GOOGLE_SHEET_ENTRY_ID, code);
-                // The 'upc' value is saved under the entry ID you provided.
+
+                console.log(`Submitting: Form ID: ${GOOGLE_SHEET_FORM_ID}, Entry ID: ${GOOGLE_SHEET_ENTRY_ID}, Value: ${code}`);
 
                 const response = await fetch(formUrl, {
                     method: 'POST',
@@ -241,16 +240,14 @@
                     body: formData,
                 });
 
-                // Since mode is 'no-cors', we can only check if the fetch succeeded, not the HTTP status.
                 // A successful fetch() call here indicates the data was sent to Google's endpoint.
-
                 saveStatusEl.textContent = `Saved to Sheet!`;
                 saveStatusEl.classList.remove('text-yellow-400');
                 saveStatusEl.classList.add('text-green-400');
 
             } catch (e) {
-                console.error("Error submitting to Google Form: ", e);
-                saveStatusEl.textContent = `Save Failed! (Check IDs/Form)`;
+                console.error("Critical Error submitting to Google Form. Check network tab for details and verify your IDs.", e);
+                saveStatusEl.textContent = `Save Failed! (Check console for error)`;
                 saveStatusEl.classList.remove('text-yellow-400');
                 saveStatusEl.classList.add('text-red-400');
             }
@@ -415,4 +412,3 @@
     </script>
 </body>
 </html>
-
