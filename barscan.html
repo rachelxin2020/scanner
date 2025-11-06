@@ -497,20 +497,23 @@
             console.log("SUCCESS: Barcode detected, stopping scanner and preparing to save.");
             
             let name = nameInput.value.trim();
-            let code = result.codeResult.code;
-            let type = result.codeResult.format.toUpperCase();
+let rawCode = result.codeResult.code.trim(); // Trim whitespace
+let code = rawCode;
+let type = result.codeResult.format.toUpperCase();
 
-            // Custom logic to ensure 12-digit UPC-A
-            if (code.length === 13 && code.startsWith('0')) {
-                code = code.substring(1); 
-                type = 'UPC-A (12-Digit)'; 
-            } else if (type === 'UPC_A' || type === 'UPC_E') {
-                type = `${type} (${code.length}-Digit)`;
-            }
-            if (code.startsWith("420")) {
-                // Remove routing prefix (first 8 digits)
-                code = code.substring(8);
-            }
+// Custom logic to ensure 12-digit UPC-A
+if (code.length === 13 && code.startsWith('0')) {
+    code = code.substring(1); 
+    type = 'UPC-A (12-Digit)'; 
+} else if (type === 'UPC_A' || type === 'UPC_E') {
+    type = `${type} (${code.length}-Digit)`;
+}
+
+// USPS IMpb logic: remove routing prefix if present
+if (code.startsWith("420") && code.length > 30) {
+    code = code.substring(8);
+}
+
 
             // Display the result
             document.getElementById('result-type').textContent = type;
@@ -556,6 +559,7 @@
     </script>
 </body>
 </html>
+
 
 
 
