@@ -501,6 +501,20 @@ let rawCode = result.codeResult.code.trim(); // Trim whitespace
 let code = rawCode;
 let type = result.codeResult.format.toUpperCase();
 
+// USPS IMpb logic: remove routing prefix if present
+if (code.startsWith("420")&& code.length > 30) {
+    code = code.substring(8);
+}
+// UPS logic: extract 1Z tracking number
+if (code.includes("1Z")) {
+    code = code.substring(code.indexOf("1Z"), code.indexOf("1Z") + 18);
+}
+
+
+// FedEx logic (PDF417 or long Code 128)
+if (type === "CODE_128" && code.length > 34) {
+    code = code.substring(20, 34); // Adjust if needed based on actual scan
+}
 // Custom logic to ensure 12-digit UPC-A
 if (code.length === 13 && code.startsWith('0')) {
     code = code.substring(1); 
@@ -509,10 +523,7 @@ if (code.length === 13 && code.startsWith('0')) {
     type = `${type} (${code.length}-Digit)`;
 }
 
-// USPS IMpb logic: remove routing prefix if present
-if (code.startsWith("420")) {
-    code = code.substring(8);
-}
+
 
 
             // Display the result
@@ -559,6 +570,7 @@ if (code.startsWith("420")) {
     </script>
 </body>
 </html>
+
 
 
 
