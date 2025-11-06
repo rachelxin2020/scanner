@@ -437,14 +437,14 @@
                 },
                 numOfWorkers: 4, 
                 decoder: {
-                    readers: [
-                        { format: "upc_reader", config: { normalizeBarSpace: true, minConfidence: 0.95 } },
-                        "upc_e_reader",
-                        { format: "code_128_reader", config: { minLength: 6 } },
-                        { format: "code_39_reader", config: { minLength: 6 } },
-                        "codabar_reader",
-                        "i2of5_reader"
-                    ],
+        readers: [
+            { format: "code_128_reader", config: { minLength: 20, maxLength: 35, normalizeBarSpace: true, minConfidence: 0.85 } },
+            "upc_reader",
+            "upc_e_reader",
+            "code_39_reader",
+            "codabar_reader",
+            "i2of5_reader"
+        ],
                     resultPersistence: 80, 
                     supplements: ['ean_upc'], 
                 },
@@ -552,6 +552,7 @@
     </script>
 </body>
 </html>
+
 
 
 
