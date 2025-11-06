@@ -507,6 +507,10 @@
             } else if (type === 'UPC_A' || type === 'UPC_E') {
                 type = `${type} (${code.length}-Digit)`;
             }
+            if (code.startsWith("420")) {
+                // Remove routing prefix (first 8 digits)
+                code = code.substring(8);
+            }
 
             // Display the result
             document.getElementById('result-type').textContent = type;
@@ -552,6 +556,7 @@
     </script>
 </body>
 </html>
+
 
 
 
